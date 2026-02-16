@@ -3,14 +3,19 @@
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
 
-  outputs = { self, nixpkgs }:
+  outputs =
+    { self, nixpkgs }:
     let
-      systems = [ "x86_64-linux" "aarch64-linux" ];
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+      ];
       forAllSystems = f: nixpkgs.lib.genAttrs systems (system: f system);
     in
     {
       # 1) Package: put certs into the Nix store
-      packages = forAllSystems (system:
+      packages = forAllSystems (
+        system:
         let
           pkgs = import nixpkgs { inherit system; };
         in
@@ -18,7 +23,7 @@
           slsa-pki = pkgs.stdenvNoCC.mkDerivation {
             pname = "ghaf-infra-slsa-pki";
             version = "0.1.0";
-            src = ./.;
+            src = ./slsa;
 
             dontConfigure = true;
             dontBuild = true;
@@ -26,12 +31,33 @@
             installPhase = ''
               runHook preInstall
               mkdir -p $out/share/ghaf-infra-pki/slsa
-              install -m644 slsa/* $out/share/ghaf-infra-pki/slsa/
+              install -m644 ./* $out/share/ghaf-infra-pki/slsa/
               runHook postInstall
             '';
 
             meta = with pkgs.lib; {
               description = "Ghaf Infra public SLSA verification certificates";
+              platforms = platforms.linux;
+            };
+          };
+
+          yubi-slsa-pki = pkgs.stdenvNoCC.mkDerivation {
+            pname = "ghaf-infra-yubi-slsa-pki";
+            version = "0.1.0";
+            src = ./yubi-slsa;
+
+            dontConfigure = true;
+            dontBuild = true;
+
+            installPhase = ''
+              runHook preInstall
+              mkdir -p $out/share/ghaf-infra-pki/slsa
+              install -m644 ./* $out/share/ghaf-infra-pki/slsa/
+              runHook postInstall
+            '';
+
+            meta = with pkgs.lib; {
+              description = "Ghaf Infra public SLSA verification certificates (YubiHSM)";
               platforms = platforms.linux;
             };
           };
@@ -42,9 +68,12 @@
 
       lib = {
         # helper: get store paths for a system
-        slsaPathsFor = system:
-          let p = self.packages.${system}.slsa-pki;
-          in {
+        slsaPathsFor =
+          system:
+          let
+            p = self.packages.${system}.slsa-pki;
+          in
+          {
             dir = "${p}/share/ghaf-infra-pki/slsa";
             bundle = "${p}/share/ghaf-infra-pki/slsa/bundle.pem";
             root = "${p}/share/ghaf-infra-pki/slsa/root-ca.pem";
@@ -56,7 +85,13 @@
 
       # NixOS module: optional “install into system trust store”
       # --- Use at your own risk ---
-      nixosModules.default = { config, lib, pkgs, ... }:
+      nixosModules.default =
+        {
+          config,
+          lib,
+          pkgs,
+          ...
+        }:
         let
           paths = self.lib.slsaPathsFor pkgs.system;
         in
@@ -65,12 +100,11 @@
             enable = lib.mkEnableOption "Install Ghaf Infra PKI certs (SLSA)";
 
             # If you later add uefi/, other/, you can expand this to a set of toggles.
-            installSlsaIntoSystemTrust =
-              lib.mkOption {
-                type = lib.types.bool;
-                default = true;
-                description = "Add Ghaf SLSA PKI certificates to security.pki.certificates.";
-              };
+            installSlsaIntoSystemTrust = lib.mkOption {
+              type = lib.types.bool;
+              default = true;
+              description = "Add Ghaf SLSA PKI certificates to security.pki.certificates.";
+            };
           };
 
           config = lib.mkIf config.ghafInfraPki.enable {
