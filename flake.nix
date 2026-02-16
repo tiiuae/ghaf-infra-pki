@@ -51,7 +51,8 @@
 
             installPhase = ''
               runHook preInstall
-              mkdir -p $out/share/ghaf-infra-pki/uefi
+              mkdir -p $out/share/ghaf-infra-pki/uefi/auth
+	      install -m644 ./auth/* $out/share/ghaf-infra-pki/uefi/auth
               install -m644 ./*.pem $out/share/ghaf-infra-pki/uefi/
               runHook postInstall
             '';
