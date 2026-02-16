@@ -41,6 +41,27 @@
             };
           };
 
+          yubi-uefi-pki = pkgs.stdenvNoCC.mkDerivation {
+            pname = "ghaf-infra-yubi-uefi-pki";
+            version = "0.1.0";
+            src = ./yubi-uefi;
+
+            dontConfigure = true;
+            dontBuild = true;
+
+            installPhase = ''
+              runHook preInstall
+              mkdir -p $out/share/ghaf-infra-pki/uefi
+              install -m644 ./*.pem $out/share/ghaf-infra-pki/uefi/
+              runHook postInstall
+            '';
+
+            meta = with pkgs.lib; {
+              description = "Ghaf Infra public UEFI Secure Boot certificates (YubiHSM)";
+              platforms = platforms.linux;
+            };
+          };
+
           yubi-slsa-pki = pkgs.stdenvNoCC.mkDerivation {
             pname = "ghaf-infra-yubi-slsa-pki";
             version = "0.1.0";
@@ -68,6 +89,17 @@
 
       lib = {
         # helper: get store paths for a system
+        yubiUefiPathsFor =
+          system:
+          let
+            p = self.packages.${system}.yubi-uefi-pki;
+          in
+          {
+            dir = "${p}/share/ghaf-infra-pki/uefi";
+            PK = "${p}/share/ghaf-infra-pki/uefi/PK.pem";
+            KEK = "${p}/share/ghaf-infra-pki/uefi/KEK.pem";
+            DB = "${p}/share/ghaf-infra-pki/uefi/DB.pem";
+          };
         slsaPathsFor =
           system:
           let
