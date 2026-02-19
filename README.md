@@ -43,17 +43,7 @@ CA certs into `security.pki.certificates`.
 
 ------------------------------------------------------------------------
 
-## Repository layout
-
-.
-├── flake.nix
-├── flake.lock
-├── slsa/
-├── yubi-slsa/
-└── yubi-uefi/
-└── auth/
-
-The built artifacts are installed under:
+## The built artifacts are installed under:
 
 -   `…/share/ghaf-infra-pki/slsa/`
 -   `…/share/ghaf-infra-pki/uefi/`
