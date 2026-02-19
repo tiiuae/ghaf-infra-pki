@@ -1,94 +1,88 @@
 # Ghaf Infra PKI Bundle
 
-This repository provides a **Nix flake** that packages public PKI certificates used by the GHAF infrastructure, starting with **SLSA verification material**.
+This repository provides a **Nix flake** that packages **public PKI
+certificates** used by the Ghaf infrastructure.
 
-The goal is to distribute **public trust material in a reproducible, Nix-native way**, so that verification scripts can rely on **installed, pinned certificates** instead of downloading public keys from the same location as binaries.
+The goal is to distribute public trust material in a **reproducible,
+Nix-native way**, so that verification scripts and CI can rely on
+**installed, pinned certificates** instead of downloading public keys
+from the same location as binaries.
 
----
+All material in this repository is **public**. **No private keys** are
+included.
+
+------------------------------------------------------------------------
 
 ## What this flake provides
 
-The flake exposes three main things:
+The flake exposes:
 
-1. **A package** containing public SLSA certificates in the Nix store  
-   (`packages.<system>.slsa-pki`)
-2. **A small Nix library** exporting canonical store paths to those certificates  
-   (`lib.slsaPathsFor`)
-3. **An optional NixOS module** to install the certificates into the system trust store
+### Packages (`packages.<system>.*`)
 
-All material in this repository is **public**. No private keys are included.
+-   `slsa-pki` --- public SLSA verification certificates (default
+    package)
+-   `yubi-slsa-pki` --- public SLSA verification certificates (YubiHSM
+    variant)
+-   `yubi-uefi-pki` --- public UEFI Secure Boot certificates (YubiHSM
+    variant)
+-   `default` → `slsa-pki`
 
----
+Supported systems: `x86_64-linux`, `aarch64-linux`.
 
-## Repository layout
+### Library helpers (`lib.*`)
 
+-   `lib.slsaPathsFor <system>` --- canonical Nix store paths for the
+    SLSA bundle
+-   `lib.yubiUefiPathsFor <system>` --- canonical Nix store paths for
+    the UEFI bundle
+
+### NixOS module (`nixosModules.default`)
+
+Optional module to install the **SLSA** bundle and (optionally) add its
+CA certs into `security.pki.certificates`.
+
+------------------------------------------------------------------------
+
+## The built artifacts are installed under:
+
+-   `…/share/ghaf-infra-pki/slsa/`
+-   `…/share/ghaf-infra-pki/uefi/`
+-   `…/share/ghaf-infra-pki/uefi/auth/`
+
+------------------------------------------------------------------------
+
+## Quick start
+
+Show flake outputs:
+
+``` bash
+nix flake show
 ```
-.
-├── flake.nix
-└── slsa
-    ├── bundle.pem
-    ├── cacert.pem
-    ├── intermediate-ca.pem
-    ├── root-ca.pem
-    └── tsa.crt
-```
 
-### Notes on files
+Build the default (SLSA) package:
 
-- `root-ca.pem`  
-  Root CA (long-lived, offline).
-
-- `intermediate-ca.pem`  
-  Intermediate CA used for signing.
-
-- `bundle.pem`  
-  CA bundle used for verification.  
-  **Ordering:** root first, then intermediate(s).
-
-  ```bash
-  cat root-ca.pem intermediate-ca.pem > bundle.pem
-  ```
-
-- `cacert.pem`  
-  TSA Trust anchor file used by verification scripts.
-
-- `tsa.crt`  
-  Time Stamping Authority certificate (usually a leaf, not a CA).
-
----
-
-## Building the PKI package
-
-To build the SLSA PKI package locally:
-
-```bash
+``` bash
 nix build .#slsa-pki
+# or
+nix build .#default
 ```
 
-The result will contain:
+Build the other bundles:
 
-```
-result/share/ghaf-infra-pki/slsa/
-├── bundle.pem
-├── cacert.pem
-├── intermediate-ca.pem
-├── root-ca.pem
-└── tsa.crt
+``` bash
+nix build .#yubi-slsa-pki
+nix build .#yubi-uefi-pki
 ```
 
-These paths are stable and live in the Nix store.
-
----
+------------------------------------------------------------------------
 
 ## Using the packaged certificates
 
 ### From scripts / verification tooling
 
-You can reference the certificates directly from the Nix store.
+Example:
 
-Example (shell):
-
-```bash
+``` bash
 PKI_DIR="$(nix build .#slsa-pki --no-link)/share/ghaf-infra-pki/slsa"
 
 openssl verify \
@@ -96,15 +90,9 @@ openssl verify \
   artifact-cert.pem
 ```
 
-This avoids downloading public keys at runtime and pins trust to the flake revision.
+### From Nix code
 
----
-
-### From Nix code (recommended)
-
-The flake exports a helper library that gives canonical paths:
-
-```nix
+``` nix
 let
   slsa = ghaf-infra-pki.lib.slsaPathsFor system;
 in {
@@ -113,17 +101,23 @@ in {
 }
 ```
 
-This is intended for use by Nix-wrapped verification tools and CI checks.
+UEFI example:
 
----
+``` nix
+let
+  uefi = ghaf-infra-pki.lib.yubiUefiPathsFor system;
+in {
+  pk  = uefi.PK;
+  kek = uefi.KEK;
+  db  = uefi.DB;
+}
+```
 
-## Optional: NixOS system-wide installation
+------------------------------------------------------------------------
 
-If you want these certificates installed into the **system trust store** on NixOS, enable the provided module.
+## Optional: NixOS system-wide installation (SLSA)
 
-### Example NixOS flake usage
-
-```nix
+``` nix
 {
   inputs.ghaf-infra-pki.url = "github:tiiuae/ghaf-infra-pki";
 
@@ -142,40 +136,23 @@ If you want these certificates installed into the **system trust store** on NixO
 }
 ```
 
-This will:
-
-- Install the PKI package into the system
-- Add the **root and intermediate CA certificates** to `security.pki.certificates`
-
-### TODO: `tsa.crt`
-
-`tsa.crt` is typically a **leaf certificate** with the `timeStamping` EKU.  
-It is **not** usually added to the system trust store.
-
-Timestamp verification should instead:
-- validate the TSA certificate chain to the CA, and
-- pin or reference the TSA certificate explicitly in verification logic.
-
----
+------------------------------------------------------------------------
 
 ## Design goals
 
-- Reproducible trust via flake pinning
-- No runtime downloads of public keys
-- Clear separation of trust material and binaries
-- Ready for extension (UEFI PKI, additional domains, etc.)
+-   Reproducible trust via flake pinning
+-   No runtime downloads of public keys
+-   Clear separation of trust material and binaries
+-   Ready for extension
 
-Future PKI domains (e.g. `uefi/`) can be added following the same pattern as `slsa/`.
-
----
+------------------------------------------------------------------------
 
 ## Intended usage
 
 This flake is meant to be consumed by:
 
-- Artifact verification scripts
-- CI pipelines
-- Nix-based security tooling
-- Users who want pinned, auditable trust material
+-   Artifact verification scripts
+-   CI pipelines
+-   CI test agents
 
-It is not a general-purpose CA bundle.
+It is **not** a general-purpose CA bundle.
