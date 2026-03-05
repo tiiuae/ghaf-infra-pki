@@ -25,6 +25,8 @@ The flake exposes:
     variant)
 -   `yubi-uefi-pki` --- public UEFI Secure Boot certificates (YubiHSM
     variant)
+-   `enroll-secureboot-keys` --- Secure Boot key enrollment script
+    (bundled with the UEFI PKI material)
 -   `default` → `slsa-pki`
 
 Supported systems: `x86_64-linux`, `aarch64-linux`.
@@ -74,6 +76,12 @@ nix build .#yubi-slsa-pki
 nix build .#yubi-uefi-pki
 ```
 
+Run the Secure Boot enrollment script:
+
+``` bash
+nix run .#enroll-secureboot-keys
+```
+
 ------------------------------------------------------------------------
 
 ## Using the packaged certificates
@@ -111,6 +119,21 @@ in {
   kek = uefi.KEK;
   db  = uefi.DB;
 }
+```
+
+------------------------------------------------------------------------
+
+## Enrolling Secure Boot keys
+
+The `enroll-secureboot-keys` package wraps `enroll-secureboot-keys.sh`
+and embeds paths to the UEFI PKI material from `yubi-uefi-pki`. It
+updates `db`, `KEK`, and `PK` EFI variables and **requires** running on
+a system booted in UEFI mode with `sudo` available.
+
+Example:
+
+``` bash
+nix run .#enroll-secureboot-keys
 ```
 
 ------------------------------------------------------------------------
