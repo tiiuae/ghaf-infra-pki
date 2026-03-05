@@ -19,7 +19,7 @@
         let
           pkgs = import nixpkgs { inherit system; };
         in
-        {
+        rec {
           slsa-pki = pkgs.stdenvNoCC.mkDerivation {
             pname = "ghaf-infra-slsa-pki";
             version = "0.1.0";
@@ -52,7 +52,7 @@
             installPhase = ''
               runHook preInstall
               mkdir -p $out/share/ghaf-infra-pki/uefi/auth
-	      install -m644 ./auth/* $out/share/ghaf-infra-pki/uefi/auth
+              install -m644 ./auth/* $out/share/ghaf-infra-pki/uefi/auth
               install -m644 ./*.pem $out/share/ghaf-infra-pki/uefi/
               runHook postInstall
             '';
@@ -82,6 +82,21 @@
               description = "Ghaf Infra public SLSA verification certificates (YubiHSM)";
               platforms = platforms.linux;
             };
+          };
+
+          enroll-secureboot-keys = pkgs.writeShellApplication {
+            name = "enroll-secureboot-keys";
+            runtimeInputs = with pkgs; [
+              efitools
+              systemd
+              e2fsprogs
+            ];
+            runtimeEnv = {
+              DBPEM = "${yubi-uefi-pki}/share/ghaf-infra-pki/uefi/DB.pem";
+              KEKPEM = "${yubi-uefi-pki}/share/ghaf-infra-pki/uefi/KEK.pem";
+              PKAUTH = "${yubi-uefi-pki}/share/ghaf-infra-pki/uefi/auth/PK.auth";
+            };
+            text = builtins.readFile ./enroll-secureboot-keys.sh;
           };
 
           default = self.packages.${system}.slsa-pki;
