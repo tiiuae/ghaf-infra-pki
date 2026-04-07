@@ -91,7 +91,7 @@ nix run .#enroll-secureboot-keys
 Example:
 
 ``` bash
-PKI_DIR="$(nix build .#slsa-pki --no-link)/share/ghaf-infra-pki/slsa"
+PKI_DIR="$(nix build .#slsa-pki --no-link --print-out-paths)/share/ghaf-infra-pki/slsa"
 
 openssl verify \
   -CAfile "$PKI_DIR/bundle.pem" \
