@@ -84,6 +84,27 @@
             };
           };
 
+          ephemeral-slsa-pki = pkgs.stdenvNoCC.mkDerivation {
+            pname = "ghaf-infra-ephemeral-slsa-pki";
+            version = "0.1.0";
+            src = ./ephemeral-slsa;
+
+            dontConfigure = true;
+            dontBuild = true;
+
+            installPhase = ''
+              runHook preInstall
+              mkdir -p $out/share/ghaf-infra-pki/ephemeral-slsa
+              install -m644 ./* $out/share/ghaf-infra-pki/ephemeral-slsa/
+              runHook postInstall
+            '';
+
+            meta = with pkgs.lib; {
+              description = "Ghaf Infra public ephemeral SLSA verification certificates";
+              platforms = platforms.linux;
+            };
+          };
+
           enroll-secureboot-keys = pkgs.writeShellApplication {
             name = "enroll-secureboot-keys";
             runtimeInputs = with pkgs; [
@@ -128,6 +149,17 @@
             intermediate = "${p}/share/ghaf-infra-pki/slsa/intermediate-ca.pem";
             trustAnchor = "${p}/share/ghaf-infra-pki/slsa/cacert.pem";
             tsa = "${p}/share/ghaf-infra-pki/slsa/tsa.crt";
+          };
+        ephemeralSlsaPathsFor =
+          system:
+          let
+            p = self.packages.${system}.ephemeral-slsa-pki;
+          in
+          {
+            dir = "${p}/share/ghaf-infra-pki/ephemeral-slsa";
+            bundle = "${p}/share/ghaf-infra-pki/ephemeral-slsa/bundle.pem";
+            root = "${p}/share/ghaf-infra-pki/ephemeral-slsa/root-ca.pem";
+            intermediate = "${p}/share/ghaf-infra-pki/ephemeral-slsa/intermediate-ca.pem";
           };
       };
 
