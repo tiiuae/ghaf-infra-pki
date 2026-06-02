@@ -31,7 +31,9 @@
             installPhase = ''
               runHook preInstall
               mkdir -p $out/share/ghaf-infra-pki/slsa
-              install -m644 ./* $out/share/ghaf-infra-pki/slsa/
+              cp -R . $out/share/ghaf-infra-pki/slsa/
+              find $out/share/ghaf-infra-pki/slsa -type f -exec chmod 0644 {} \;
+              find $out/share/ghaf-infra-pki/slsa -type d -exec chmod 0755 {} \;
               runHook postInstall
             '';
 
@@ -128,6 +130,14 @@
             intermediate = "${p}/share/ghaf-infra-pki/slsa/intermediate-ca.pem";
             trustAnchor = "${p}/share/ghaf-infra-pki/slsa/cacert.pem";
             tsa = "${p}/share/ghaf-infra-pki/slsa/tsa.crt";
+            nethsmTampere = {
+              dir = "${p}/share/ghaf-infra-pki/slsa/nethsm-tampere";
+              bundle = "${p}/share/ghaf-infra-pki/slsa/nethsm-tampere/bundle.pem";
+              root = "${p}/share/ghaf-infra-pki/slsa/nethsm-tampere/root-ca.pem";
+              intermediate = "${p}/share/ghaf-infra-pki/slsa/nethsm-tampere/intermediate-ca.pem";
+              signing = "${p}/share/ghaf-infra-pki/slsa/nethsm-tampere/GhafInfraSignECP256.pem";
+              provisioning = "${p}/share/ghaf-infra-pki/slsa/nethsm-tampere/GhafInfraSignProv.pem";
+            };
           };
       };
 
