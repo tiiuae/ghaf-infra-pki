@@ -21,6 +21,8 @@ The flake exposes:
 
 -   `slsa-pki` --- public SLSA verification certificates (default
     package)
+-   `ephemeral-slsa-pki` --- public ephemeral SLSA verification
+    certificates
 -   `yubi-slsa-pki` --- public SLSA verification certificates (YubiHSM
     variant)
 -   `yubi-uefi-pki` --- public UEFI Secure Boot certificates (YubiHSM
@@ -35,6 +37,8 @@ Supported systems: `x86_64-linux`, `aarch64-linux`.
 
 -   `lib.slsaPathsFor <system>` --- canonical Nix store paths for the
     SLSA bundle
+-   `lib.ephemeralSlsaPathsFor <system>` --- canonical Nix store paths
+    for the ephemeral SLSA bundle
 -   `lib.yubiUefiPathsFor <system>` --- canonical Nix store paths for
     the UEFI bundle
 
@@ -48,6 +52,7 @@ CA certs into `security.pki.certificates`.
 ## The built artifacts are installed under:
 
 -   `…/share/ghaf-infra-pki/slsa/`
+-   `…/share/ghaf-infra-pki/ephemeral-slsa/`
 -   `…/share/ghaf-infra-pki/uefi/`
 -   `…/share/ghaf-infra-pki/uefi/auth/`
 
@@ -72,6 +77,7 @@ nix build .#default
 Build the other bundles:
 
 ``` bash
+nix build .#ephemeral-slsa-pki
 nix build .#yubi-slsa-pki
 nix build .#yubi-uefi-pki
 ```
@@ -106,6 +112,17 @@ let
 in {
   trustAnchor = slsa.bundle;
   tsaCert     = slsa.tsa;
+}
+```
+
+Ephemeral SLSA example:
+
+``` nix
+let
+  ephemeralSlsa = ghaf-infra-pki.lib.ephemeralSlsaPathsFor system;
+in {
+  trustBundle = ephemeralSlsa.bundle;
+  rootCA      = ephemeralSlsa.root;
 }
 ```
 
