@@ -48,8 +48,41 @@ CA certs into `security.pki.certificates`.
 ## The built artifacts are installed under:
 
 -   `…/share/ghaf-infra-pki/slsa/`
+-   `…/share/ghaf-infra-pki/slsa/nethsm-tampere/`
+-   `…/share/ghaf-infra-pki/slsa/nethsm-tampere-mca/`
 -   `…/share/ghaf-infra-pki/uefi/`
 -   `…/share/ghaf-infra-pki/uefi/auth/`
+
+------------------------------------------------------------------------
+
+## SLSA NetHSM Tampere MCA CA structure
+
+The `slsa/nethsm-tampere-mca/` certificate set uses one common root CA
+and four environment-specific intermediate CAs:
+
+``` text
+root-ca.pem
+├── intermediate-ca-dbg.pem
+│   └── GhafInfraSign*-dbg.pem
+├── intermediate-ca-dev.pem
+│   └── GhafInfraSign*-dev.pem
+├── intermediate-ca-prod.pem
+│   └── GhafInfraSign*-prod.pem
+└── intermediate-ca-release.pem
+    ├── GhafInfraSign*-release.pem
+    └── GhafInfraSignReleasePolicy.pem
+```
+
+Each environment has its own bundle:
+
+-   `bundle-dbg.pem`
+-   `bundle-dev.pem`
+-   `bundle-prod.pem`
+-   `bundle-release.pem`
+
+The `release` hierarchy also includes
+`GhafInfraSignReleasePolicy.pem`, which is exposed separately by the Nix
+library helper.
 
 ------------------------------------------------------------------------
 
@@ -98,6 +131,18 @@ openssl verify \
   artifact-cert.pem
 ```
 
+NetHSM Tampere MCA example for an environment-specific verification
+bundle:
+
+``` bash
+PKI_DIR="$(nix build .#slsa-pki --no-link --print-out-paths)/share/ghaf-infra-pki/slsa"
+ENV=prod
+
+openssl verify \
+  -CAfile "$PKI_DIR/nethsm-tampere-mca/bundle-$ENV.pem" \
+  artifact-cert.pem
+```
+
 ### From Nix code
 
 ``` nix
@@ -106,6 +151,23 @@ let
 in {
   trustAnchor = slsa.bundle;
   tsaCert     = slsa.tsa;
+}
+```
+
+NetHSM Tampere MCA example:
+
+``` nix
+let
+  slsa = ghaf-infra-pki.lib.slsaPathsFor system;
+  mca = slsa.nethsmTampereMca;
+in {
+  prodBundle = mca.bundle.prod;
+  prodRoot = mca.root;
+  prodIntermediate = mca.intermediate.prod;
+  prodSigningCert = mca.signing.prod;
+
+  releaseBundle = mca.bundle.release;
+  releasePolicyCert = mca.releasePolicy;
 }
 ```
 
@@ -140,6 +202,10 @@ nix run .#enroll-secureboot-keys
 
 ## Optional: NixOS system-wide installation (SLSA)
 
+The default NixOS module installs the `slsa-pki` package and, when
+`installSlsaIntoSystemTrust` is enabled, adds the top-level SLSA root
+and intermediate CA certificates to `security.pki.certificates`.
+
 ``` nix
 {
   inputs.ghaf-infra-pki.url = "github:tiiuae/ghaf-infra-pki";
@@ -158,6 +224,35 @@ nix run .#enroll-secureboot-keys
   };
 }
 ```
+
+To install the NetHSM Tampere MCA CA certificates into the system trust
+store, add the common root CA and the intermediate CAs that the host
+should trust explicitly:
+
+``` nix
+{ pkgs, ghaf-infra-pki, ... }:
+
+let
+  slsa = ghaf-infra-pki.lib.slsaPathsFor pkgs.system;
+  mca = slsa.nethsmTampereMca;
+in {
+  environment.systemPackages = [
+    ghaf-infra-pki.packages.${pkgs.system}.slsa-pki
+  ];
+
+  security.pki.certificates = [
+    (builtins.readFile mca.root)
+    (builtins.readFile mca.intermediate.dbg)
+    (builtins.readFile mca.intermediate.dev)
+    (builtins.readFile mca.intermediate.prod)
+    (builtins.readFile mca.intermediate.release)
+  ];
+}
+```
+
+For verification scripts and CI, prefer the environment-specific bundle
+path, such as `mca.bundle.prod` or `mca.bundle.release`, instead of
+adding all MCA CAs to the operating system trust store.
 
 ------------------------------------------------------------------------
 

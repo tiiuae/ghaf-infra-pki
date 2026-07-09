@@ -122,6 +122,7 @@
           system:
           let
             p = self.packages.${system}.slsa-pki;
+            nethsmTampereMcaDir = "${p}/share/ghaf-infra-pki/slsa/nethsm-tampere-mca";
           in
           {
             dir = "${p}/share/ghaf-infra-pki/slsa";
@@ -137,6 +138,41 @@
               intermediate = "${p}/share/ghaf-infra-pki/slsa/nethsm-tampere/intermediate-ca.pem";
               signing = "${p}/share/ghaf-infra-pki/slsa/nethsm-tampere/GhafInfraSignECP256.pem";
               provisioning = "${p}/share/ghaf-infra-pki/slsa/nethsm-tampere/GhafInfraSignProv.pem";
+            };
+            nethsmTampereMca = {
+              dir = nethsmTampereMcaDir;
+              root = "${nethsmTampereMcaDir}/root-ca.pem";
+              intermediate = {
+                dbg = "${nethsmTampereMcaDir}/intermediate-ca-dbg.pem";
+                dev = "${nethsmTampereMcaDir}/intermediate-ca-dev.pem";
+                prod = "${nethsmTampereMcaDir}/intermediate-ca-prod.pem";
+                release = "${nethsmTampereMcaDir}/intermediate-ca-release.pem";
+              };
+              bundle = {
+                dbg = "${nethsmTampereMcaDir}/bundle-dbg.pem";
+                dev = "${nethsmTampereMcaDir}/bundle-dev.pem";
+                prod = "${nethsmTampereMcaDir}/bundle-prod.pem";
+                release = "${nethsmTampereMcaDir}/bundle-release.pem";
+              };
+              signing = {
+                dbg = "${nethsmTampereMcaDir}/GhafInfraSignECP256-dbg.pem";
+                dev = "${nethsmTampereMcaDir}/GhafInfraSignECP256-dev.pem";
+                prod = "${nethsmTampereMcaDir}/GhafInfraSignECP256-prod.pem";
+                release = "${nethsmTampereMcaDir}/GhafInfraSignECP256-release.pem";
+              };
+              provisioning = {
+                dbg = "${nethsmTampereMcaDir}/GhafInfraSignProv-dbg.pem";
+                dev = "${nethsmTampereMcaDir}/GhafInfraSignProv-dev.pem";
+                prod = "${nethsmTampereMcaDir}/GhafInfraSignProv-prod.pem";
+                release = "${nethsmTampereMcaDir}/GhafInfraSignProv-release.pem";
+              };
+              cosign = {
+                dbg = "${nethsmTampereMcaDir}/GhafInfraSignCosign-dbg.pem";
+                dev = "${nethsmTampereMcaDir}/GhafInfraSignCosign-dev.pem";
+                prod = "${nethsmTampereMcaDir}/GhafInfraSignCosign-prod.pem";
+                release = "${nethsmTampereMcaDir}/GhafInfraSignCosign-release.pem";
+              };
+              releasePolicy = "${nethsmTampereMcaDir}/GhafInfraSignReleasePolicy.pem";
             };
           };
       };
