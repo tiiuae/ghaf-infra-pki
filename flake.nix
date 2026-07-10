@@ -86,6 +86,26 @@
             };
           };
 
+          nethsm-slsa-pki-tampere = pkgs.stdenvNoCC.mkDerivation {
+            pname = "ghaf-infra-nethsm-slsa-pki-tampere";
+            version = "0.1.0";
+            src = ./slsa/nethsm-tampere-mca;
+            dontConfigure = true;
+            dontBuild = true;
+
+            installPhase = ''
+              runHook preInstall
+              mkdir -p $out/share/ghaf-infra-pki/slsa-nethsm
+              install -m644 ./* $out/share/ghaf-infra-pki/slsa-nethsm/
+              runHook postInstall
+            '';
+
+            meta = with pkgs.lib; {
+              description = "Ghaf Infra public SLSA verification certificates (NetHSM-Tampere)";
+              platforms = platforms.linux;
+            };
+          };
+
           enroll-secureboot-keys = pkgs.writeShellApplication {
             name = "enroll-secureboot-keys";
             runtimeInputs = with pkgs; [
@@ -136,8 +156,8 @@
               bundle = "${p}/share/ghaf-infra-pki/slsa/nethsm-tampere/bundle.pem";
               root = "${p}/share/ghaf-infra-pki/slsa/nethsm-tampere/root-ca.pem";
               intermediate = "${p}/share/ghaf-infra-pki/slsa/nethsm-tampere/intermediate-ca.pem";
-              signing = "${p}/share/ghaf-infra-pki/slsa/nethsm-tampere/GhafInfraSignECP256.pem";
-              provisioning = "${p}/share/ghaf-infra-pki/slsa/nethsm-tampere/GhafInfraSignProv.pem";
+              signartifact = "${p}/share/ghaf-infra-pki/slsa/nethsm-tampere/GhafInfraSignECP256.pem";
+              signprovenance = "${p}/share/ghaf-infra-pki/slsa/nethsm-tampere/GhafInfraSignProv.pem";
             };
             nethsmTampereMca = {
               dir = nethsmTampereMcaDir;
@@ -154,13 +174,13 @@
                 prod = "${nethsmTampereMcaDir}/bundle-prod.pem";
                 release = "${nethsmTampereMcaDir}/bundle-release.pem";
               };
-              signing = {
+              signartifact = {
                 dbg = "${nethsmTampereMcaDir}/GhafInfraSignECP256-dbg.pem";
                 dev = "${nethsmTampereMcaDir}/GhafInfraSignECP256-dev.pem";
                 prod = "${nethsmTampereMcaDir}/GhafInfraSignECP256-prod.pem";
                 release = "${nethsmTampereMcaDir}/GhafInfraSignECP256-release.pem";
               };
-              provisioning = {
+              signprovenance = {
                 dbg = "${nethsmTampereMcaDir}/GhafInfraSignProv-dbg.pem";
                 dev = "${nethsmTampereMcaDir}/GhafInfraSignProv-dev.pem";
                 prod = "${nethsmTampereMcaDir}/GhafInfraSignProv-prod.pem";

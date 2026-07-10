@@ -27,6 +27,7 @@ The flake exposes:
     variant)
 -   `enroll-secureboot-keys` --- Secure Boot key enrollment script
     (bundled with the UEFI PKI material)
+-   ´nethsm-slsa-pki-tampere´ --- public SLSA verification certificates (NetHSM-Tampere)
 -   `default` → `slsa-pki`
 
 Supported systems: `x86_64-linux`, `aarch64-linux`.
